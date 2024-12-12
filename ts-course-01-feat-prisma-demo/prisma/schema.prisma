@@ -1,0 +1,303 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Brand {
+  id          String         @id @db.VarChar(36)
+  name        String         @db.VarChar(100)
+  image       String?        @db.VarChar(200)
+  tagLine     String?        @map("tag_line") @db.VarChar(150)
+  description String?        @db.Text
+  status      BrandStatus? @default(active)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime       @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@map("brands")
+}
+
+model Cart {
+  id        String   @id @db.VarChar(36)
+  userId    String   @map("user_id") @db.VarChar(36)
+  productId String   @map("product_id") @db.VarChar(36)
+  attribute String   @db.VarChar(150)
+  quantity  Int      @db.UnsignedInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@unique([userId, productId, attribute], map: "upa")
+  @@map("carts")
+}
+
+model Category {
+  id          String             @unique(map: "id") @db.VarChar(36)
+  name        String             @db.VarChar(50)
+  image       String?            @db.VarChar(200)
+  description String?            @db.VarChar(50)
+  position    Int?               @default(0)
+  parentId    String?            @map("parent_id") @db.VarChar(36)
+  status      CategoryStatus? @default(active)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime           @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@map("categories")
+}
+
+model Image {
+  id        String         @unique(map: "id") @db.VarChar(36)
+  path      String         @db.VarChar(255)
+  cloudName String         @map("cloud_name") @db.VarChar(50)
+  width     Int?
+  height    Int?
+  size      Int?
+  status    ImageStatus? @default(uploaded)
+  createdAt DateTime     @map("created_at") @db.DateTime(6)
+  updatedAt DateTime     @map("updated_at") @db.DateTime(6)
+
+  @@map("images")
+}
+
+model OrderItem {
+  id        String  @id @db.VarChar(36)
+  orderId   String  @map("order_id") @db.VarChar(36)
+  productId String  @map("product_id") @db.VarChar(36)
+  attribute String  @db.VarChar(80)
+  image     String? @db.VarChar(200)
+  name      String? @db.VarChar(150)
+  quantity  Int
+  price     Decimal @db.Decimal(15, 2)
+
+  @@unique([orderId, productId, attribute], map: "opa")
+  @@index([productId], map: "product_id")
+  @@map("order_items")
+}
+
+model Order {
+  id                 String                  @id @db.VarChar(36)
+  userId             String                  @map("user_id") @db.VarChar(36)
+  shippingAddress    String                  @map("shipping_address") @db.VarChar(255)
+  shippingCity       String?                 @map("shipping_city") @db.VarChar(80)
+  shippingMethod     OrderShippingMethod? @default(free)
+  paymentMethod      OrderPaymentMethod?
+  paymentStatus      OrderPaymentStatus   @default(pending)
+  recipientFirstName String?                 @map("recipient_first_name") @db.VarChar(80)
+  recipientLastName  String?                 @map("recipient_last_name") @db.VarChar(80)
+  recipientPhone     String?                 @map("recipient_phone") @db.VarChar(50)
+  recipientEmail     String?                 @map("recipient_email") @db.VarChar(50)
+  trackingNumber     String?                 @unique(map: "tracking_number") @map("tracking_number") @db.VarChar(15)
+  status             OrderStatus?          @default(pending)
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime                @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@index([paymentStatus], map: "payment_status")
+  @@index([status], map: "status")
+  @@index([userId], map: "user_id")
+  @@map("orders")
+}
+
+model ProductLike {
+  userId    String    @db.VarChar(36)
+  productId String    @db.VarChar(36)
+  createdAt DateTime? @db.DateTime(6)
+
+  @@id([productId, userId])
+  @@index([userId], map: "user_id")
+  @@map("product_likes")
+}
+
+model ProductRating {
+  userId    String    @map("user_id") @db.VarChar(36)
+  productId String    @map("product_id") @db.VarChar(36)
+  content   String?   @db.Text
+  createdAt DateTime? @map("created_at") @db.DateTime(6)
+  updatedAt DateTime? @map("updated_at") @db.DateTime(6)
+
+  @@id([productId, userId])
+  @@index([userId], map: "user_id")
+  @@map("product_ratings")
+}
+
+model Product {
+  id          String           @id @db.VarChar(36)
+  name        String           @db.VarChar(100)
+  gender      ProductGender? @default(unisex)
+  images      Json?
+  price       Decimal          @db.Decimal(15, 2)
+  salePrice   Decimal          @map("sale_price") @db.Decimal(15, 2)
+  colors      String?          @db.VarChar(100)
+  quantity    Int
+  brandId     String           @map("brand_id") @db.VarChar(36) 
+  categoryId  String           @map("category_id") @db.VarChar(36)
+  content     String?          @db.Text
+  description String?          @db.Text
+  rating      Float?           @default(0) @db.Float
+  saleCount   Int?             @default(0) @db.UnsignedInt @map("sale_count")
+  status      ProductStatus? @default(active)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime         @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@index([brandId], map: "brand_id")
+  @@index([categoryId], map: "category_id")
+  @@index([gender], map: "gender")
+  @@map("products")
+}
+
+model user_identities {
+  id         String                  @id @db.VarChar(36)
+  userId     String                  @map("user_id") @db.VarChar(36)
+  identifier String?                 @db.VarChar(150)
+  password   String?                 @db.VarChar(100)
+  salt       String?                 @db.VarChar(50)
+  type       UserIdentityType    @default(email_password)
+  status     UserIdentityStatus? @default(active)
+  createdAt  DateTime                @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime                @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@index([status], map: "status")
+  @@map("user_identities")
+}
+
+model UserSession {
+  id          String                @id @db.VarChar(36)
+  userId      String                @map("user_id") @db.VarChar(36)
+  identityId  String                @map("identity_id") @db.VarChar(36)
+  expiredAt   DateTime?             @map("expired_at") @db.Timestamp(0)
+  ip          String?               @db.VarChar(15)
+  geo         String?               @db.VarChar(100)
+  device      String?               @db.VarChar(150)
+  type        UserSessionType    @default(access_token)
+  status      UserSessionStatus? @default(active)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime           @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@index([status], map: "status")
+  @@map("user_sessions")
+}
+
+model User {
+  id         String        @id @db.VarChar(36)
+  avatar     String?       @db.VarChar(150)
+  firstName  String        @db.VarChar(100) @map("first_name")
+  lastName   String        @db.VarChar(100) @map("last_name")
+  email      String        @unique(map: "email") @db.VarChar(150)
+  password   String        @db.VarChar(100)
+  salt       String        @db.VarChar(50)
+  phone      String?       @db.VarChar(20)
+  address    String?       @db.VarChar(255)
+  birthday   DateTime?     @map("birthday") @db.Date
+  gender     UserGender  @default(male)
+  role       UserRole    @default(user)
+  status     UserStatus? @default(active)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime      @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  @@index([status], map: "status")
+  @@map("users")
+}
+
+enum ProductGender {
+  male
+  femail
+  unisex
+}
+
+enum OrderShippingMethod {
+  free
+  standard
+}
+
+enum BrandStatus {
+  active
+  inactive
+  deleted
+}
+
+enum OrderPaymentMethod {
+  cod
+  zalo
+}
+
+enum UserIdentityType {
+  email_password
+  facebook
+  google
+}
+
+enum CategoryStatus {
+  active
+  inactive
+  deleted
+}
+
+enum ImageStatus {
+  uploaded
+  used
+}
+
+enum OrderPaymentStatus {
+  pending
+  paid
+  failed
+}
+
+enum UserIdentityStatus {
+  active
+  pending
+  inactive
+  banned
+  deleted
+}
+
+enum UserSessionType {
+  access_token
+  refresh
+}
+
+enum UserSessionStatus {
+  active
+  pending
+  inactive
+  banned
+  deleted
+}
+
+enum UserGender {
+  male
+  female
+  unknown
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  processing
+  shipping
+  delivered
+  completed
+  canceled
+  refunded
+  deleted
+}
+
+enum UserStatus {
+  active
+  pending
+  inactive
+  banned
+  deleted
+}
+
+enum ProductStatus {
+  active
+  inactive
+  deleted
+}
